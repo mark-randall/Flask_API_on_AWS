@@ -63,7 +63,7 @@ Resources:
       Cpu: 256
       Memory: 512
       ContainerDefinitions:
-      - Name: activities-api
+      - Name: activities-api # TODO must match pipeline imagedefinitions.json keys
         Essential: true
         Image: !Ref 'Container'
         PortMappings:
