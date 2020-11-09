@@ -347,7 +347,7 @@ Resources:
           Configuration:
             ClusterName: activities-ECSCluster-FTIQHCRKWcT5 # TODO config name
             ServiceName: activities-ECSService-QfHFV6LIvXc7 # TODO config name
-            FileName: imageDefinitions.json
+            FileName: imagedefinitions.json
       ArtifactStore:
         Type: S3
         Location: !Join ['-', [!Ref 'AWS::AccountId', !Ref 'AWS::StackName', 'codepipelineartifacts']]
@@ -450,6 +450,9 @@ Resources:
             Action:
             - ecr:InitiateLayerUpload
             - ecr:GetAuthorizationToken
+            - ecr:GetDownloadUrlForLayer
+            - ecr:BatchGetImage
+            - ecr:BatchCheckLayerAvailability
             Resource: "*"
 
 Outputs:
