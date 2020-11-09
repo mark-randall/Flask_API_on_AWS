@@ -280,6 +280,7 @@ Resources:
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
+      Name: !Join ['-', [!Ref 'AWS::StackName', 'codeBuildProject']]
       Artifacts: 
         Type: 'no_artifacts' 
       Environment:
@@ -331,7 +332,7 @@ Resources:
           InputArtifacts:
           - Name: !Join ['-', [!Ref 'AWS::StackName', 'sourceArtifact']]
           Configuration:
-            ProjectName: !Join ['-', [!Ref 'AWS::StackName', 'serviceCodeBuildProject']]
+            ProjectName: !Join ['-', [!Ref 'AWS::StackName', 'codeBuildProject']]
           RunOrder: 1
       - Name: Deploy
         Actions:
