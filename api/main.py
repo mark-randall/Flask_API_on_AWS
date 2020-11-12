@@ -1,5 +1,6 @@
 import os
 from flask import Flask, jsonify
+from flask_migrate import Migrate
 
 app = Flask(__name__, instance_relative_config=True)
 app.config.from_mapping(
@@ -7,13 +8,11 @@ app.config.from_mapping(
 )
 app.config.from_pyfile('config.py', silent=True)
 
-@app.route('/')
-def root():
-    return jsonify('API coming soon!')
+from views import *
 
-@app.route('/health')
-def health():
-    return jsonify('It is alive')
+from models import db
+db.init_app(app)
+migrate = Migrate(app, db)
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=80)
+    app.run(debug=True, host='0.0.0.0', port=80)

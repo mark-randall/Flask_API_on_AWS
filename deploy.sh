@@ -37,7 +37,8 @@ aws cloudformation update-stack \
     --stack-name $DEPLOYMENT_NAME \
     --capabilities CAPABILITY_NAMED_IAM \
     --template-body file://cloud-formation.yaml \
-    --parameters ParameterKey=Container,ParameterValue=$DOCKER_TAG ParameterKey=VpcId,ParameterValue=$VPC_ID ParameterKey=SubnetId,ParameterValue=$VPC_SUBNETS
+    --parameters ParameterKey=Container,ParameterValue=$DOCKER_TAG ParameterKey=VpcId,ParameterValue=$VPC_ID ParameterKey=SubnetId,ParameterValue=$VPC_SUBNETS \
+    --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM
 
 # aws cloudformation describe-stacks --stack-name $DEPLOYMENT_NAME
 
