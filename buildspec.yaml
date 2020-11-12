@@ -22,7 +22,7 @@ phases:
       # Tag the built docker image using the appropriate Amazon ECR endpoint and relevant
       # repository for our service container. This ensures that when the docker push
       # command is executed later, it will be pushed to the appropriate repository.
-      - docker tag activities:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/activities:latest
+      - docker tag activities/api:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/activities/api:latest
   post_build:
     commands:
       - echo Build completed on `date`
