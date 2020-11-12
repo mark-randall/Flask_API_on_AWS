@@ -9,11 +9,11 @@ app.config.from_pyfile('config.py', silent=True)
 
 @app.route('/')
 def root():
-    return jsonify('activities api')
+    return jsonify('API coming soon!')
 
 @app.route('/health')
 def health():
     return jsonify('It is alive')
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=80)
+    app.run(debug=False, host='0.0.0.0', port=80)

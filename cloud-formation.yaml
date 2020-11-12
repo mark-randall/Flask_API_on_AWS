@@ -1,9 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Parameters:
-  # KeyName:
-  #   Type: AWS::EC2::KeyPair::KeyName
-  #   Description: Name of an existing EC2 KeyPair to enable SSH access to the ECS instances.
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: Select a VPC that allows instances access to the Internet.
@@ -19,6 +16,8 @@ Parameters:
     Description: Number of instances to launch in your ECS cluster.
 
 Resources:
+
+  # Security Group ####################################
 
   ECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -42,11 +41,15 @@ Resources:
       ToPort: 22
       CidrIp: 0.0.0.0/0
 
+  # Cloud Watch ####################################
+
   CloudwatchLogsGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Join ['-', [ECSLogGroup, !Ref 'AWS::StackName']]
       RetentionInDays: 14
+
+  # Fargate ####################################
 
   ECSCluster:
     Type: AWS::ECS::Cluster
@@ -54,7 +57,7 @@ Resources:
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: !Join ['', [!Ref 'AWS::StackName', -activies-api]]
+      Family: !Join ['-', [!Ref 'AWS::StackName', api]]
       RequiresCompatibilities: 
       - FARGATE
       NetworkMode: awsvpc
@@ -63,7 +66,7 @@ Resources:
       Cpu: 256
       Memory: 512
       ContainerDefinitions:
-      - Name: activities-api # TODO must match pipeline imagedefinitions.json keys
+      - Name: activities-api # NOTE: must match pipeline imagedefinitions.json keys in buildspec.yaml (SEE: buildspec.yaml)
         Essential: true
         Image: !Ref 'Container'
         PortMappings:
@@ -74,7 +77,7 @@ Resources:
           Options:
             awslogs-group: !Ref 'CloudwatchLogsGroup'
             awslogs-region: !Ref 'AWS::Region'
-            awslogs-stream-prefix: ecs-api        
+            awslogs-stream-prefix: activities-api       
 
   ECSLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -124,7 +127,7 @@ Resources:
       DesiredCount: !Ref 'DesiredCapacity'
       NetworkConfiguration:
         AwsVpcConfiguration:
-          AssignPublicIp: 'ENABLED' # TODO update to make DISABLED
+          AssignPublicIp: 'ENABLED' # TODO: find solution which doesn't give containers public IPs. Required now for ECR access.
           SecurityGroups: 
           - !Ref 'ECSSecurityGroup'
           Subnets: !Ref 'SubnetId'
@@ -134,10 +137,6 @@ Resources:
         TargetGroupArn: !Ref 'ECSLoadBalancerTargetGroup'
       TaskDefinition: !Ref 'ECSTaskDefinition'
 
-  # This is an IAM role which authorizes ECS to manage resources on your
-  # account on your behalf, such as updating your load balancer with the
-  # details of where your containers are, so that traffic can reach your
-  # containers.
   ECSServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -190,14 +189,7 @@ Resources:
             - 'logs:CreateLogGroup'
             - 'logs:PutLogEvents'
             Resource: '*'
-
-  # This is a role which is used by the ECS tasks. Tasks in Amazon ECS define
-  # the containers that should be deployed togehter and the resources they
-  # require from a compute/memory perspective. So, the policies below will define
-  # the IAM permissions that our Mythical Mysfits docker containers will have.
-  # If you attempted to write any code for the Mythical Mysfits service that
-  # interacted with different AWS service APIs, these roles would need to include
-  # those as allowed actions.
+  
   ECSTaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -228,6 +220,57 @@ Resources:
               - 'logs:PutLogEvents'
               Resource: '*'
 
+  # Database ####################################
+
+  # DatabaseRotationSecret:
+  #   Type: AWS::SecretsManager::Secret
+  #   Properties:
+  #     Description: 'Database secre'
+  #     GenerateSecretString:
+  #       SecretStringTemplate: '{"username": "admin"}'
+  #       GenerateStringKey: 'password'
+  #       PasswordLength: 16
+  #       ExcludeCharacters: '"@/\'
+
+  # SecretAttachment:
+  #   Type: AWS::SecretsManager::SecretTargetAttachment
+  #   Properties:
+  #     SecretId: !Ref DatabaseRotationSecret
+  #     TargetId: !Ref Database
+  #     TargetType: AWS::RDS::DBInstance
+  
+  # SecretRotationSchedule:
+  #   Type: AWS::SecretsManager::RotationSchedule
+  #   DependsOn: SecretAttachment 
+  #   Properties:
+  #     SecretId: !Ref DatabaseRotationSecret
+  #     HostedRotationLambda:
+  #       RotationType: MySQLSingleUser
+  #       RotationLambdaName: SecretsManagerRotation
+  #       VpcSecurityGroupIds: Ref: ECSSecurityGroup
+  #       VpcSubnetIds: !Ref 'SubnetId'
+  #       #   Fn::Join:
+  #       #     - ","
+  #       #     - - Ref: TestSubnet01
+  #       #       - Ref: TestSubnet02
+  #     RotationRules:
+  #       AutomaticallyAfterDays: 30
+
+  # Database:
+  #   Type: AWS::RDS::DBInstance
+  #   Properties:
+  #     DBSecurityGroups:
+  #     - Ref: ECSSecurityGroup
+  #     AllocatedStorage: '5'
+  #     DBInstanceClass: db.t2.micro
+  #     Engine: MySQL
+  #     MasterUsername: !Sub '{{resolve:secretsmanager:${DatabaseRotationSecret}::username}}'
+  #     MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseRotationSecret}::password}}'
+  #     BackupRetentionPeriod: 0
+  #     DeletionPolicy: Snapshot
+
+  # CI/CD Pipeline #################################### 
+
   CodePipelineArtifactsBucket:
     Type: AWS::S3::Bucket
     DependsOn: CodePipelineServiceRole
@@ -247,30 +290,13 @@ Resources:
           - s3:GetObjectVersion
           - s3:GetBucketVersioning
           - s3:PutObject
-          Principal: '*' # TODO lock this down
+          Principal: 
+            Service:
+            - codepipeline.amazonaws.com
+            - codebuild.amazonaws.com
           Resource:
           - !GetAtt CodePipelineArtifactsBucket.Arn
           - !Join ['', [!GetAtt CodePipelineArtifactsBucket.Arn, '/*']]
-
-  ERCRepository:
-    Type: AWS::ECR::Repository
-    Properties:
-      RepositoryName: !Ref 'AWS::StackName'
-      RepositoryPolicyText:
-        Statement:
-        - Sid: AllowPushPull
-          Effect: Allow
-          Principal:
-            AWS: 
-            - !GetAtt CodeBuildServiceRole.Arn
-          Action:
-          - ecr:GetDownloadUrlForLayer
-          - ecr:BatchGetImage
-          - ecr:BatchCheckLayerAvailability
-          - ecr:PutImage
-          - ecr:InitiateLayerUpload
-          - ecr:UploadLayerPart
-          - ecr:CompleteLayerUpload
 
   CodeRepository:
     Type: AWS::CodeCommit::Repository
@@ -345,19 +371,13 @@ Resources:
           InputArtifacts:
           - Name: !Join ['-', [!Ref 'AWS::StackName', 'buildArtifact']]
           Configuration:
-            ClusterName: activities-ECSCluster-FTIQHCRKWcT5 # TODO config name
-            ServiceName: activities-ECSService-QfHFV6LIvXc7 # TODO config name
+            ClusterName: !Ref ECSCluster
+            ServiceName: !GetAtt ECSService.Name
             FileName: imagedefinitions.json
       ArtifactStore:
         Type: S3
         Location: !Join ['-', [!Ref 'AWS::AccountId', !Ref 'AWS::StackName', 'codepipelineartifacts']]
-
-  # An IAM role that allows the AWS CodePipeline service to perform it's
-  # necessary actions. We have intentionally left permissions on this role
-  # that will not be used by the CodePipeline service during this workshop.
-  # This will allow you to more simply use CodePipeline in the future should
-  # you want to use the service for Pipelines that interact with different
-  # AWS services than the ones used in this workshop.
+  
   CodePipelineServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -405,9 +425,6 @@ Resources:
             Effect: Allow
           Version: "2012-10-17"
 
-  # An IAM role that allows the AWS CodeBuild service to perform the actions
-  # required to complete a build of our source code retrieved from CodeCommit,
-  # and push the created image to ECR.
   CodeBuildServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -465,3 +482,6 @@ Outputs:
     Value: !Join ['', [!GetAtt [ECSLoadBalancer, DNSName]]]
   taskdef:
     Value: !Ref 'ECSTaskDefinition'
+  coddrepourl:
+    Description: CodeCommit repository to clone or add as a remote
+    Value: !GetAtt CodeRepository.CloneUrlHttp

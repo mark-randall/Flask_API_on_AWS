@@ -1,0 +1,20 @@
+{
+	"Statement": [{
+		"Sid": "AllowPushPull",
+		"Effect": "Allow",
+		"Principal": {
+			"AWS": [
+				"arn:aws:iam::471625376696:role/CodeBuildServiceRole"
+			]
+		},
+		"Action": [
+			"ecr:GetDownloadUrlForLayer",
+			"ecr:BatchGetImage",
+			"ecr:BatchCheckLayerAvailability",
+			"ecr:PutImage",
+			"ecr:InitiateLayerUpload",
+			"ecr:UploadLayerPart",
+			"ecr:CompleteLayerUpload"
+		]
+	}]
+}
