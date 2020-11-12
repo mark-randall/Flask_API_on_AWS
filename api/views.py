@@ -24,7 +24,7 @@ def users(user_id):
 
 # Activities
 
-@app.route('/activities', defaults={'activity_id': None}, methods=['POST'])
+@app.route('/activities', defaults={'activity_id': None}, methods=['POST', 'GET'])
 @app.route('/activities/<int:activity_id>', methods=['PUT', 'GET'])
 def activities(activity_id):
 
@@ -45,4 +45,11 @@ def activities(activity_id):
             abort(400)
 
     elif request.method == 'GET':
-        return 'TODO: GET %s' % escape(activity_id)
+
+        if activity_id is not None:
+            activities = Activity.query.filter(id=activity_id).all()
+            return json.dumps(activities)
+        else:
+            activities = Activity.query.all()
+            print(len(activities))
+            return jsonify(activities)

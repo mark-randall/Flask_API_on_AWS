@@ -70,6 +70,11 @@ Resources:
       - Name: activities-api # NOTE: must match pipeline imagedefinitions.json keys in buildspec.yaml (SEE: buildspec.yaml)
         Essential: true
         Image: !Ref 'Container'
+        Environment:
+        - Name: 'AWS_REGION'
+          Value: !Ref 'AWS::Region'
+        - Name: 'AWS_SECRETE_MANAGER_SECRET_NAME'
+          Value: 'DatabaseRotationSecret-LrlpkbvCq8no' # TODO figure out of to pass the name from a !Ref
         PortMappings:
         - ContainerPort: 80
           Protocol: 'tcp'
@@ -190,6 +195,11 @@ Resources:
             - 'logs:CreateLogGroup'
             - 'logs:PutLogEvents'
             Resource: '*'
+          - Effect: Allow
+            Action:
+            - 'secretsmanager:GetSecretValue'
+            Resource:
+            - !Ref 'DatabaseRotationSecret'
   
   ECSTaskRole:
     Type: AWS::IAM::Role
@@ -220,6 +230,11 @@ Resources:
               - 'logs:CreateLogGroup'
               - 'logs:PutLogEvents'
               Resource: '*'
+            - Effect: Allow
+              Action:
+              - 'secretsmanager:GetSecretValue'
+              Resource:
+              - !Ref 'DatabaseRotationSecret'
 
   # Database ####################################
 

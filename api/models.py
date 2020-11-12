@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from dataclasses import dataclass
 
 db = SQLAlchemy()
 
@@ -9,7 +10,11 @@ class User(db.Model):
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), server_onupdate=db.func.now())
     activities = db.relationship('UserActivity', backref='user', lazy=True)
 
+@dataclass
 class Activity(db.Model):
+    id: int
+    name: str
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(256), unique=True, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
