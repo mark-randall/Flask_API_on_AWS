@@ -222,52 +222,52 @@ Resources:
 
   # Database ####################################
 
-  # DatabaseRotationSecret:
-  #   Type: AWS::SecretsManager::Secret
-  #   Properties:
-  #     Description: 'Database secre'
-  #     GenerateSecretString:
-  #       SecretStringTemplate: '{"username": "admin"}'
-  #       GenerateStringKey: 'password'
-  #       PasswordLength: 16
-  #       ExcludeCharacters: '"@/\'
+  DatabaseRotationSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Database secre'
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admin"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
 
-  # SecretAttachment:
-  #   Type: AWS::SecretsManager::SecretTargetAttachment
-  #   Properties:
-  #     SecretId: !Ref DatabaseRotationSecret
-  #     TargetId: !Ref Database
-  #     TargetType: AWS::RDS::DBInstance
+  SecretAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref DatabaseRotationSecret
+      TargetId: !Ref Database
+      TargetType: AWS::RDS::DBInstance
   
-  # SecretRotationSchedule:
-  #   Type: AWS::SecretsManager::RotationSchedule
-  #   DependsOn: SecretAttachment 
-  #   Properties:
-  #     SecretId: !Ref DatabaseRotationSecret
-  #     HostedRotationLambda:
-  #       RotationType: MySQLSingleUser
-  #       RotationLambdaName: SecretsManagerRotation
-  #       VpcSecurityGroupIds: Ref: ECSSecurityGroup
-  #       VpcSubnetIds: !Ref 'SubnetId'
-  #       #   Fn::Join:
-  #       #     - ","
-  #       #     - - Ref: TestSubnet01
-  #       #       - Ref: TestSubnet02
-  #     RotationRules:
-  #       AutomaticallyAfterDays: 30
+  SecretRotationSchedule:
+    Type: AWS::SecretsManager::RotationSchedule
+    DependsOn: SecretAttachment 
+    Properties:
+      SecretId: !Ref DatabaseRotationSecret
+      HostedRotationLambda:
+        RotationType: MySQLSingleUser
+        RotationLambdaName: SecretsManagerRotation
+        VpcSecurityGroupIds: Ref: ECSSecurityGroup
+        VpcSubnetIds: !Ref 'SubnetId'
+        #   Fn::Join:
+        #     - ","
+        #     - - Ref: TestSubnet01
+        #       - Ref: TestSubnet02
+      RotationRules:
+        AutomaticallyAfterDays: 30
 
-  # Database:
-  #   Type: AWS::RDS::DBInstance
-  #   Properties:
-  #     DBSecurityGroups:
-  #     - Ref: ECSSecurityGroup
-  #     AllocatedStorage: '5'
-  #     DBInstanceClass: db.t2.micro
-  #     Engine: MySQL
-  #     MasterUsername: !Sub '{{resolve:secretsmanager:${DatabaseRotationSecret}::username}}'
-  #     MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseRotationSecret}::password}}'
-  #     BackupRetentionPeriod: 0
-  #     DeletionPolicy: Snapshot
+  Database:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBSecurityGroups:
+      - Ref: ECSSecurityGroup
+      AllocatedStorage: '5'
+      DBInstanceClass: db.t2.micro
+      Engine: MySQL
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DatabaseRotationSecret}::username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseRotationSecret}::password}}'
+      BackupRetentionPeriod: 0
+      DeletionPolicy: Snapshot
 
   # CI/CD Pipeline #################################### 
 

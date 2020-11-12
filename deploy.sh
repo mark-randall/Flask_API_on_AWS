@@ -10,7 +10,7 @@ DOCKER_TAG="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${DEPLOYMENT_NAME}/${A
 
 ## STEP 0 (if necessary) - Create ERC for API service base docker image
 
-# To support pulling base Docker image from ECR because of Docker public image throttling
+# To support pulling base Docker image from ECR because of Docker public image pull rate limiting
 # https://www.docker.com/increase-rate-limit
 # https://www.docker.com/blog/how-to-use-your-own-registry/
 # aws ecr create-repository --repository-name ubuntu
@@ -19,7 +19,8 @@ DOCKER_TAG="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${DEPLOYMENT_NAME}/${A
 # docker tag $UBUNTU_LATEST_TAG $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/ubuntu:latest
 # docker push $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/ubuntu:latest
 
-## STEP 1 - Create ERC push first Image
+## STEP 1 - Create ERC and push first Image
+# Required for cloudformation creation because Fargate Service Task requires this container to complete creation 
 
 # # Create ERC
 # aws ecr create-repository --repository-name "${DEPLOYMENT_NAME}/${API_SERVICE_NAME}"
